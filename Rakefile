@@ -6,21 +6,21 @@ require 'optparse'
 require 'date'
 
 # basics
-TEXDOC_VERSION = "3.4.1"
-PKG_NAME = "texdoc-#{TEXDOC_VERSION}"
+PKG_NAME = "texdoc"
+PKG_VERSION = "4.0.1"
 CTAN_MIRROR = "http://ctan.mirror.rafal.ca/systems/texlive/tlnet"
 
 # woking/temporaly dirs
-PWD = Pathname.pwd
-TMP_DIR = PWD / "tmp"
+BASE_DIR = Pathname.pwd
+TMP_DIR = BASE_DIR / "tmp"
 
 # Texdoc files/dirs
-TEXDOC_SCRIPT_DIR = PWD / "script"
-TEXDOC_CNF = PWD / "texdoc.cnf"
+TEXDOC_SCRIPT_DIR = BASE_DIR / "script"
+TEXDOC_CNF = BASE_DIR / "texdoc.cnf"
 TEXDOC_TLU = TEXDOC_SCRIPT_DIR / "texdoc.tlu"
 
 # output dir
-OUTPUT_DIR = PWD / "output"
+OUTPUT_DIR = BASE_DIR / "output"
 directory OUTPUT_DIR
 
 # TEXMF
@@ -95,9 +95,11 @@ DUMMY_TEXDOC_CNFS = []
 end
 
 # options for ronn
-OPT_MAN = "--manual=\"Texdoc manual\""
-OPT_ORG = "--organization=\"Texdoc #{TEXDOC_VERSION}\""
-OPT_DATE = "--date=\"#{Time.now.strftime('%F')}\""
+RONN_OPTS = [
+  "--manual=\"Texdoc manual\"",
+  "--organization=\"Texdoc #{PKG_VERSION}\"",
+  "--date=\"#{Time.now.strftime('%F')}\""
+].join(" ")
 
 # cleaning
 CLEAN.include(["doc/*", "tmp"])
@@ -151,6 +153,11 @@ task :test =>
   end
 
   # use controlled environment
+  if not ENV["GITHUB_ACTIONS"]
+    env_path = ENV["PATH"]
+    ENV.clear
+    ENV["PATH"] = env_path
+  end
   ENV["TEXMFHOME"] = PS_TEXMF.to_s
 
   # check version
@@ -252,6 +259,9 @@ task :save_output => [PS_TEXDOC_LINK, PS_TEXDOC_CNF_LINK, OUTPUT_DIR] do
     sh "texlua #{TEXDOC_TLU} -qlM #{q} >> #{@output_file}"
     file_puts
   end
+
+  # replace year to XXXX
+  sh "sed -i '' -E 's/\\\/20[0-9][0-9]\\\//\\\/XXXX\\\//' #{@output_file}"
 end
 
 desc "Check aliases are alive"
@@ -293,13 +303,13 @@ desc "Generate all documentation"
 task :doc do
   cd "doc"
   sh "llmk -qs texdoc.tex"
-  sh "bundle exec ronn -r #{OPT_DATE} #{OPT_MAN} #{OPT_ORG} texdoc.1.md 2> #{File::NULL}"
+  sh "bundle exec ronn -r #{RONN_OPTS} texdoc.1.md 2> #{File::NULL}"
 end
 
 desc "Preview the manpage"
 task :man do
   cd "doc"
-  sh "bundle exec ronn -m #{OPT_DATE} #{OPT_MAN} #{OPT_ORG} texdoc.1.md"
+  sh "bundle exec ronn -m #{RONN_OPTS} texdoc.1.md"
 end
 
 desc "Bump version"
@@ -309,26 +319,39 @@ task :bump_version do
   end
   fail "New version must be specified" if new_version == nil
 
-  old_version = TEXDOC_VERSION.gsub(".", "\\.")
+  old_version = PKG_VERSION.gsub(".", "\\.")
   this_year = Date.today.year.to_s
   release_date = Date.today.strftime('%Y-%m-%d')
 
   # version
-  sh "sed -i '' 's/#{old_version}/#{new_version}/' ./spec/support/shared_contexts/version_context.rb"
-  sh "sed -i '' 's/#{old_version}/#{new_version}/' ./script/texdoclib-const.tlu"
-  sh "sed -i '' 's/#{old_version}/#{new_version}/' ./doc/texdoc.tex"
-  sh "sed -i '' 's/#{old_version}/#{new_version}/' ./Rakefile"
+  [
+    "./spec/support/shared_contexts/version_context.rb",
+    "./script/texdoclib-const.tlu",
+    "./doc/texdoc.tex",
+    "./Rakefile"
+  ].each do |file|
+    sh "sed -i '' 's/#{old_version}/#{new_version}/' #{file}"
+  end
 
   # copyright year
-  sh "sed -i '' -E 's/-20[0-9][0-9]/-#{this_year}/' ./spec/action/version_spec.rb"
-  sh "sed -i '' -E 's/-20[0-9][0-9]/-#{this_year}/' ./script/texdoclib-const.tlu"
-  sh "sed -i '' -E 's/-20[0-9][0-9]/-#{this_year}/' ./script/texdoclib.tlu"
-  sh "sed -i '' -E 's/-20[0-9][0-9]/-#{this_year}/' ./doc/texdoc.1.md"
-  sh "sed -i '' -E 's/-20[0-9][0-9]/-#{this_year}/' ./doc/texdoc.tex"
+  [
+    "./spec/action/version_spec.rb",
+    "./script/texdoclib-const.tlu",
+    "./script/texdoclib.tlu",
+    "./doc/texdoc.1.md",
+    "./doc/texdoc.tex",
+    "./README.md"
+  ].each do |file|
+    sh "sed -i '' -E 's/-20[0-9][0-9]/-#{this_year}/' #{file}"
+  end
 
   # release date
-  sh "sed -i '' -E 's/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/#{release_date}/' ./spec/support/shared_contexts/version_context.rb"
-  sh "sed -i '' -E 's/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/#{release_date}/' ./script/texdoclib-const.tlu"
+  [
+    "./spec/support/shared_contexts/version_context.rb",
+    "./script/texdoclib-const.tlu"
+  ].each do |file|
+    sh "sed -i '' -E 's/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/#{release_date}/' #{file}"
+  end
 
   exit 0
 end
@@ -342,7 +365,7 @@ task :ctan => :doc do
   mkdir_p [TARGET_SCRIPT_DIR, TARGET_DOC_DIR]
 
   # copy all required files
-  cd PWD
+  cd BASE_DIR
   cp ["COPYING", "README.md", "NEWS", "texdoc.cnf"], TARGET_DIR
   cp Dir.glob("script/*.tlu"), TARGET_SCRIPT_DIR
 
@@ -352,9 +375,10 @@ task :ctan => :doc do
   end
 
   # create zip archive
+  ZIP_NAME = "#{PKG_NAME}-#{PKG_VERSION}.zip"
   cd TMP_DIR
-  sh "zip -q -r #{PKG_NAME}.zip #{PKG_NAME}"
-  mv "#{PKG_NAME}.zip", PWD
+  sh "zip -q -r #{ZIP_NAME} #{PKG_NAME}"
+  mv "#{ZIP_NAME}", BASE_DIR
 end
 
 desc "Setup TeX Live on Unix-like pratforms"
@@ -392,7 +416,7 @@ task :setup_unix do
   sh "tlmgr init-usertree"
 
   # finish
-  cd PWD
+  cd BASE_DIR
   rm_rf INSTALL_DIR
 end
 
@@ -421,7 +445,7 @@ task :setup_windows do
     TEXMFSYSCONFIG D:/texlive/texmf-config
     TEXMFSYSVAR D:/texlive/texmf-var
     TEXMFVAR ~/.texlive/texmf-var
-    binary_win32 1
+    binary_windows 1
     tlpdbopt_install_srcfiles 0
   EOF
 
@@ -434,6 +458,6 @@ task :setup_windows do
   sh "tlmgr.bat init-usertree"
 
   # finish
-  cd PWD
+  cd BASE_DIR
   rm_rf INSTALL_DIR
 end

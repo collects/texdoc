@@ -51,6 +51,8 @@ Alternatively, perform the given ACTION and exit.
   Print the list of configuration files used.
 * `--just-view` FILE:
   Display FILE, given with full path (no searching).
+* `--print-completion` SHELL:
+  Print SHELL completion.
 
 ## ENVIRONMENT
 
@@ -71,8 +73,8 @@ The following environment variables can be split by colon and used to set viewer
 
 The following environment variables are also used:
 
-* `LANG`, `LC_ALL` and so on:
-  Set the locale (which will influence on the search results).
+* `LANG`, `LC_ALL`, `LANGUAGE`, `LANGUAGE_texdoc`:
+  Set the locale, which will influence on the search results.
 * `TEXDOCS`:
   In addition to the documents included in the TeX Live database, Texdoc also
   searches documentation under TEXMF trees specified by the kpathsea variable
@@ -103,7 +105,7 @@ Source: <https://github.com/TeX-Live/texdoc>
 
 ## COPYRIGHT
 
-Copyright 2008-2022 Manuel Pe'gourie'-Gonnard, Takuto Asakura, the TeX Live Team.  
+Copyright 2008-2023 Manuel Pe'gourie'-Gonnard, Takuto Asakura, the TeX Live Team.  
 License: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.  
 This is free software: you are free to change and redistribute it.
 

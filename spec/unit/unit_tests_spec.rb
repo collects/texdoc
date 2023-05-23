@@ -17,8 +17,21 @@ RSpec.describe "Unit test", :type => :aruba do
 
     it { expect(last_command_started).to be_successfully_executed }
   end
+
+  context 'score_test.lua' do
+    before(:each) { run_unit_test "score" }
+
+    it { expect(last_command_started).to be_successfully_executed }
+  end
+
   context 'util_test.lua' do
     before(:each) { run_unit_test "util" }
+
+    it { expect(last_command_started).to be_successfully_executed }
+  end
+
+  context 'alias_test.lua' do
+    before(:each) { run_unit_test "alias" }
 
     it { expect(last_command_started).to be_successfully_executed }
   end

@@ -85,7 +85,9 @@
 # badbasename_list = readme, 00readme
 
 # Known suffixes for documentation
-suffix_list = doc, -doc, _doc, .doc, /doc, manual, /manual, -manual, userguide, /user_guide, -guide, -user, man, -man, notes, -info, ref
+suffix_list = doc, -doc, _doc, .doc, /doc, manual, /manual, -manual, \
+              userguide, /user_guide, -guide, -user, man, -man, \
+              -documentation, notes, -info, ref
 
 ## Fuzzy search
 
@@ -276,6 +278,7 @@ alias tex-live-zh-cn = texlive-zh-cn
 
 # a few useful general documents
 alias latex = latex-doc-ptr
+alias plain = gentle
 
 # various lshort translations
 adjscore(lshort) /lshort-english/ = +0.5                   # original
@@ -297,7 +300,7 @@ alias xelatex = xetex-reference
 alias e-tex = etex_man
 alias etex = etex_man
 alias pdftex = pdftex-a
-#alias xetex = xetex-reference # OK
+alias xetex = xetex-reference # needed by packages with "xetex" in their names
 alias xelatex = xetex-reference
 
 alias e-tex-man = etex.man1
